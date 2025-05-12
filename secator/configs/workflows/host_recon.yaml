@@ -1,45 +1,52 @@
 type: workflow
-name: host_recon
-alias: hostrec
-description: Host recon
-tags: [recon, network, http]
+name: subdomain_recon
+alias: subrec
+description: Subdomain discovery
+tags: [recon, dns, takeovers]
 input_types:
   - host
-  - cidr_range
 tasks:
-  naabu:
-    description: Find open ports
-    ports: "-"  # scan all ports
-  nmap:
-    description: Search for vulnerabilities on open ports
-    version_detection: True
-    script: vulners
-    targets_:
-    - port.host
-    - target.name
-    ports_:
-    - port.port
-    ports: "-"  # default if no port found by naabu
-  _group/1:
+#SUBFINDER
+  subfinder:
+    description: List subdomains (passive)
+#NUCLEI Domain takeover & dns
+  _group:
+    nuclei:
+      description: Check for subdomain takeovers
+      targets_:
+      - target.name
+      - subdomain.host
+      tags: [takeover, dns]
+ 
+ #HTTPX http probes on subdomains
     httpx:
-      description: Probe HTTP services on open ports
+      description: Run HTTP probes on subdomains
       targets_:
-        - type: port
-          field: '{host}:{port}'
-    searchsploit:
-      description: Search for related exploits
+      - target.name
+      - subdomain.host
+      tags: [screenshot, tech-detect]
+  
+ #NABU scan open ports
+    nmap:
+      description: Find open ports
       targets_:
-        - type: port
-          field: service_name
-          condition: len(item.service_name.split('/')) > 1
-  _group/2:
-    nuclei/network:
-      description: Scan network and SSL vulnerabilities
-      tags: [network, ssl]
+      - target.name
+      - subdomain.host
+ #HTTPX
+    httpx:
+		    description: Probe HTTP services on open ports
+		    targets_:
+			    - type: port
+				    field: '{host}:{port}'
+				tags: [screenshot, tech-detect]
+			
+#NUCLEI SSL & Headers
     nuclei/url:
       description: Search for vulnerabilities on alive HTTP services
-      exclude_tags: [network, ssl, file, dns, osint, token-spray, headers]
+      tags: [network, ssl, headers]
       targets_:
         - type: url
           field: url
           condition: item.status_code != 0
+	    
+    
