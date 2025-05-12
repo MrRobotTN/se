@@ -1,5 +1,5 @@
 type: workflow
-name: subdomain_recon
+name: host_recon
 alias: subrec
 description: Subdomain discovery
 tags: [recon, dns, takeovers]
